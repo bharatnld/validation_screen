@@ -1,1 +1,2 @@
 ﻿streamlit-pdf-viewer==0.0.29
+aiohttp
