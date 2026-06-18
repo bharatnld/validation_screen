@@ -4,7 +4,7 @@ import asyncio
 API_URL = "https://unstandardisable-shantelle-gnawable.ngrok-free.dev/api/process/combinedOcrBytes"
 
 
-async def process_file(file, customer_name):
+async def process_file(file, customer_name, model_name):
 
     try:
         data = aiohttp.FormData()
@@ -20,6 +20,7 @@ async def process_file(file, customer_name):
             "customer_name",
             customer_name
         )
+        data.add_field("model_name", model_name)
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
