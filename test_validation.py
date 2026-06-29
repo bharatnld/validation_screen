@@ -6,11 +6,11 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
-API_URL = "http://10.10.63.155:93/api/process/combinedOcrBytes"
+API_URL = "https://unstandardisable-shantelle-gnawable.ngrok-free.dev/api/process/combinedOcrBytes"
 
 CUSTOMERS = [
     "corybrothers_oil",
-    "Cory Brothers Oil CA",  # ← new
+    "Cory Brothers Oil CA",   # ← new
 ]
 
 CA_CUSTOMER_KEY = "corybrothers_oil_ca"   # sent to API
