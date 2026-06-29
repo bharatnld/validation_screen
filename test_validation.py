@@ -9,9 +9,15 @@ from openpyxl.utils import get_column_letter
 API_URL = "https://unstandardisable-shantelle-gnawable.ngrok-free.dev/api/process/combinedOcrBytes"
 
 CUSTOMERS = [
-    "corybrothers_oil",
+    "Cory Brothers SH",
     "Cory Brothers Oil CA",   # ← new
 ]
+
+# Maps the friendly display name shown in the dropdown to the actual
+# customer_name value the backend API expects.
+CUSTOMER_API_KEY_MAP = {
+    "Cory Brothers SH": "corybrothers_oil",
+}
 
 CA_CUSTOMER_KEY = "corybrothers_oil_ca"   # sent to API
 
@@ -469,7 +475,7 @@ with col_cust:
     customer_display = st.selectbox("Customer", CUSTOMERS, index=0)
 
 is_ca = (customer_display == "Cory Brothers Oil CA")
-api_customer = CA_CUSTOMER_KEY if is_ca else customer_display
+api_customer = CA_CUSTOMER_KEY if is_ca else CUSTOMER_API_KEY_MAP.get(customer_display, customer_display)
 
 if uploaded_files:
     pills_html = ""
@@ -482,9 +488,45 @@ if uploaded_files:
 
     st.divider()
     if st.button("⚡ Extract & Merge Data", use_container_width=True, type="primary"):
-        with st.spinner(f"Processing {len(uploaded_files)} file(s)..."):
+        status_box = st.empty()
+        STAGES = [
+            "📤 Uploading file(s) to the extraction service...",
+            "🔍 Running OCR & reading invoice fields...",
+            "🧮 Validating and merging line items...",
+            "⏳ Still working — large files can take a little longer...",
+        ]
+        SPINNER_CSS = """<style>
+            .ocr-spinner { width:16px;height:16px;border-radius:50%;
+                border:3px solid #C7D2E0;border-top-color:#1F3864;
+                animation:ocr-spin 0.8s linear infinite; flex-shrink:0; }
+            @keyframes ocr-spin { to { transform:rotate(360deg); } }
+            </style>"""
+
+        def render_status(msg: str):
+            status_box.markdown(
+                f"""<div style="display:flex;align-items:center;gap:10px;
+                     background:#EEF2F7;border:1px solid #CBD5E1;border-radius:10px;
+                     padding:12px 16px;color:#1F3864;font-weight:500;">
+                     <div class="ocr-spinner"></div>{msg}
+                     </div>{SPINNER_CSS}""",
+                unsafe_allow_html=True,
+            )
+
+        async def run_with_staged_status():
             files_data = [(f.getvalue(), f.name) for f in uploaded_files]
-            result = asyncio.run(call_api(files_data, api_customer))
+            api_task = asyncio.create_task(call_api(files_data, api_customer))
+
+            stage_idx = 0
+            render_status(STAGES[stage_idx])
+            while not api_task.done():
+                await asyncio.sleep(3)
+                if not api_task.done():
+                    stage_idx = min(stage_idx + 1, len(STAGES) - 1)
+                    render_status(STAGES[stage_idx])
+            return await api_task
+
+        result = asyncio.run(run_with_staged_status())
+        status_box.empty()
 
         if "error" in result:
             st.error(f"API error: {result['error']}")
